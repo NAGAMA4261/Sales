@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahi-Khata — Sale & Profit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF7F0;
+    --panel:#FFFFFF;
+    --line:#DAD3C0;
+    --line-soft:#EAE5D6;
+    --ink:#241F18;
+    --ink-muted:#766F5F;
+    --brand:#1F3A3D;
+    --brand-soft:#DCE6E5;
+    --gold:#9C7A0E;
+    --gold-bg:#F4ECD2;
+    --red:#A5342A;
+    --red-bg:#F6E4E1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans Devanagari','Noto Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .tabular{font-variant-numeric:tabular-nums;font-family:'Noto Sans',sans-serif;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+
+  header.masthead{border-bottom:2px solid var(--ink);padding:18px 20px 14px;background:var(--paper);}
+  .masthead-row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;}
+  .masthead h1{font-size:20px;font-weight:700;margin:0;letter-spacing:0.2px;}
+  .masthead .date-line{font-size:13px;color:var(--ink-muted);}
+  .lang-toggle{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:4px 4px;display:flex;gap:2px;font-size:12px;}
+  .lang-toggle button{border:none;background:transparent;padding:5px 12px;border-radius:16px;cursor:pointer;font-family:inherit;font-size:12px;color:var(--ink-muted);}
+  .lang-toggle button.active{background:var(--brand);color:#fff;}
+
+  .summary-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-bottom:1px solid var(--line);background:var(--panel);}
+  .summary-cell{padding:14px 18px;border-right:1px solid var(--line-soft);}
+  .summary-cell:last-child{border-right:none;}
+  .summary-cell .label{font-size:11.5px;color:var(--ink-muted);margin-bottom:4px;}
+  .summary-cell .value{font-size:20px;font-weight:700;}
+  .summary-cell .value.gold{color:var(--gold);}
+  .summary-cell .value.red{color:var(--red);}
+
+  .body-wrap{display:flex;flex:1;min-height:0;}
+  nav.rail{width:168px;flex-shrink:0;border-right:1px solid var(--line);background:var(--panel);padding:10px 0;}
+  nav.rail button{display:block;width:100%;text-align:left;border:none;background:transparent;padding:11px 18px;font-size:14px;color:var(--ink);cursor:pointer;font-family:inherit;border-left:3px solid transparent;}
+  nav.rail button.active{border-left-color:var(--brand);background:var(--brand-soft);font-weight:600;}
+  main{flex:1;padding:20px;overflow-x:auto;min-width:0;}
+  h2.section-title{font-size:16px;margin:0 0 14px;font-weight:700;border-bottom:1px solid var(--ink);padding-bottom:8px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media(max-width:760px){
+    .grid-2{grid-template-columns:1fr;}
+    nav.rail{width:100%;display:flex;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);padding:6px 0;}
+    nav.rail button{width:auto;white-space:nowrap;border-left:none;border-bottom:3px solid transparent;padding:9px 14px;}
+    nav.rail button.active{border-left:none;border-bottom-color:var(--brand);}
+    .body-wrap{flex-direction:column;}
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11.5px;color:var(--ink-muted);font-weight:600;padding:6px 8px;border-bottom:1.5px solid var(--ink);}
+  td{padding:8px 8px;border-bottom:1px solid var(--line-soft);}
+  td.num,th.num{text-align:right;}
+  tr.low-stock td{color:var(--red);}
+
+  .card{background:var(--panel);border:1px solid var(--line);padding:16px;margin-bottom:18px;}
+  .card h3{margin:0 0 10px;font-size:13.5px;font-weight:700;}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-muted);margin-bottom:4px;}
+  .field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);background:#fff;font-family:inherit;font-size:14px;border-radius:3px;color:var(--ink);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn{background:var(--brand);color:#fff;border:none;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer;border-radius:3px;font-family:inherit;}
+  .btn.secondary{background:transparent;color:var(--brand);border:1px solid var(--brand);}
+  .btn.danger{background:var(--red);}
+  .btn-row{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;}
+
+  .progress-line{margin-bottom:14px;}
+  .progress-line .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;}
+  .progress-track{height:8px;background:var(--line-soft);border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--brand);}
+  .progress-fill.over{background:var(--gold);}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+  .badge.gold{background:var(--gold-bg);color:var(--gold);}
+  .badge.red{background:var(--red-bg);color:var(--red);}
+
+  .empty-note{color:var(--ink-muted);font-size:13px;padding:20px 4px;}
+  .small-link{background:none;border:none;color:var(--brand);font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline;font-family:inherit;}
+  .footer-note{padding:10px 20px;font-size:11px;color:var(--ink-muted);border-top:1px solid var(--line);}
+  .field-error{border-color:var(--red) !important;}
+  #toast-banner{position:fixed;top:14px;left:14px;right:14px;background:var(--red);color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;z-index:9999;text-align:center;display:none;box-shadow:0 4px 14px rgba(0,0,0,0.2);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(36,31,24,0.55);display:flex;align-items:center;justify-content:center;z-index:9998;padding:20px;}
+  .modal-box{background:var(--panel);border-radius:6px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;}
+  .modal-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-muted);line-height:1;}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+function showToast(msg){
+  let el = document.getElementById('toast-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'toast-banner';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>{ el.style.display = 'none'; }, 3000);
+}
+function closeModal(){
+  const ov = document.getElementById('modal-overlay');
+  if(ov) ov.remove();
+}
+function showModal(innerHTML){
+  closeModal();
+  const ov = document.createElement('div');
+  ov.id = 'modal-overlay';
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box"><button class="modal-close" id="modal-close-btn">×</button>${innerHTML}</div>`;
+  ov.onclick = (e)=>{ if(e.target===ov) closeModal(); };
+  document.body.appendChild(ov);
+  document.getElementById('modal-close-btn').onclick = closeModal;
+  return ov;
+}
+function showConfirmModal(msg, onYes){
+  const yesLabel = data.lang==='hi' ? 'हाँ, मिटाओ' : 'Yes, delete';
+  const noLabel = data.lang==='hi' ? 'रद्द करें' : 'Cancel';
+  const ov = showModal(`
+    <div style="font-size:14px;padding:6px 0 4px;">${msg}</div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="confirm-no">${noLabel}</button>
+      <button class="btn danger" id="confirm-yes">${yesLabel}</button>
+    </div>
+  `);
+  document.getElementById('confirm-no').onclick = closeModal;
+  document.getElementById('confirm-yes').onclick = ()=>{ closeModal(); onYes(); };
+}
+function showPromptModal(labelText, onSubmit){
+  const okLabel = data.lang==='hi' ? 'ठीक है' : 'OK';
+  const cancelLabel = data.lang==='hi' ? 'रद्द करें' : 'Cancel';
+  showModal(`
+    <div class="field" style="margin-top:8px;"><label>${labelText}</label><input type="number" id="prompt-input" min="1" step="1" autofocus></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="prompt-cancel">${cancelLabel}</button>
+      <button class="btn" id="prompt-ok">${okLabel}</button>
+    </div>
+  `);
+  document.getElementById('prompt-cancel').onclick = closeModal;
+  document.getElementById('prompt-ok').onclick = ()=>{
+    const v = Number(document.getElementById('prompt-input').value);
+    closeModal();
+    if(v && v>0) onSubmit(v);
+  };
+}
+
+/* ---------------- STATE & STORAGE ---------------- */
+const DEFAULT_DATA = {
+  products: [], sales: [], customers: [], payments: [], expenses: [], purchases: [], dues: [],
+  targets: { daily: 0, monthly: 0, yearly: 0, twoYear: 0, workingDays: 26 }, lang: 'hi'
+};
+let data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let activeTab = 'dashboard';
+let loaded = false;
+let storageMode = 'cloud';
+let dueRows = [{productId:'',qty:''}];
+let historyGroupBy = 'day';
+let historyFrom = '';
+let historyTo = '';
+
+async function storageGet(key){
+  try{ const res = await window.storage.get(key); return res ? res.value : null; }
+  catch(e){ try{ return localStorage.getItem(key); }catch(e2){ return null; } }
+}
+async function storageSet(key, value){
+  try{ await window.storage.set(key, value); return 'cloud'; }
+  catch(e){ try{ localStorage.setItem(key, value); return 'local'; } catch(e2){ return 'none'; } }
+}
+
+async function loadData(){
+  try{
+    const v = await storageGet('app-data');
+    if(v){ data = Object.assign({}, DEFAULT_DATA, JSON.parse(v)); }
+  }catch(e){ /* first run */ }
+  loaded = true;
+  render();
+}
+
+let saveTimer = null;
+function saveData(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    storageMode = await storageSet('app-data', JSON.stringify(data));
+    if(storageMode==='none') render();
+  }, 250);
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
+function numVal(id){ return Number(val(id))||0; }
+
+/* ---------------- I18N ---------------- */
+const T = {
+  hi: {
+    appName:'बही-खाता', dashboard:'डैशबोर्ड', addSale:'सेल एंट्री', products:'प्रोडक्ट्स',
+    customers:'ग्राहक (उधार)', expenses:'खर्चा', targets:'टारगेट', reports:'रिपोर्ट्स',
+    todaySale:'आज की सेल', todayProfit:'आज का प्रॉफिट', monthAchieved:'महीना पूरा हुआ',
+    yearAchieved:'साल पूरा हुआ', pendingDues:'बकाया राशि', lowStock:'कम स्टॉक',
+    kingToday:'आज का किंग प्रोडक्ट', kingMonth:'महीने का किंग प्रोडक्ट',
+    requiredAvg:'बचे दिनों में रोज़ चाहिए', bufferMade:'टारगेट से ज़्यादा बना',
+    onTrack:'टारगेट पर हो', addProduct:'नया प्रोडक्ट जोड़ें', name:'नाम', category:'कैटेगरी',
+    costPrice:'लागत मूल्य', sellPrice:'बिक्री मूल्य', stockQty:'स्टॉक मात्रा', lowAlert:'कम स्टॉक अलर्ट पर',
+    save:'सेव करें', product:'प्रोडक्ट', qty:'मात्रा', discount:'छूट', paymentMode:'भुगतान तरीका',
+    customer:'ग्राहक', notes:'नोट्स', recordSale:'सेल रिकॉर्ड करें', cash:'नकद', online:'ऑनलाइन',
+    credit:'उधार', selectProduct:'प्रोडक्ट चुनें', walkIn:'सामान्य ग्राहक', addCustomer:'नया ग्राहक जोड़ें',
+    phone:'फ़ोन', totalDue:'कुल बकाया', recordPayment:'भुगतान दर्ज करें', amount:'राशि',
+    expenseCategory:'खर्चे की कैटेगरी', addExpense:'खर्चा जोड़ें', date:'तारीख',
+    dailyTarget:'रोज़ का टारगेट', monthlyTarget:'महीने का टारगेट', yearlyTarget:'साल का टारगेट',
+    setTargets:'टारगेट सेव करें', restock:'स्टॉक बढ़ाएँ', addStock:'स्टॉक जोड़ें', supplier:'सप्लायर',
+    profitTotal:'कुल प्रॉफिट', revenueTotal:'कुल बिक्री', margin:'मार्जिन', rank:'रैंक',
+    byQty:'मात्रा अनुसार', byProfit:'प्रॉफिट अनुसार', period:'अवधि', today:'आज', thisMonth:'इस महीने',
+    thisYear:'इस साल', noData:'अभी कोई डेटा नहीं है', delete:'हटाएँ', edit:'बदलें', netProfit:'नेट प्रॉफिट',
+    totalExpense:'कुल खर्चा', settingsNote:'भाषा बदलें', reset:'सारा डेटा मिटाएँ', confirmReset:'पक्का सारा डेटा मिटाना है?',
+    highDemand:'ज़्यादा बिकने वाला', due:'बकाया', paid:'चुका दिया', currentStock:'मौजूदा स्टॉक',
+    addSaleTitle:'नई सेल जोड़ें', totalCollected:'कुल वसूली', outstanding:'बकाया राशि',
+    soldToday:'आज बिकी', soldMonth:'महीने में बिकी', exportTitle:'रिपोर्ट डाउनलोड करें',
+    csvDay:'आज का CSV', csvMonth:'महीने का CSV', pdfDay:'आज का PDF', pdfMonth:'महीने का PDF',
+    leastSelling:'सबसे कम बिकने वाला (इस महीने)', fastMoving:'तेज़ बिकने वाला', slowMoving:'धीमा बिकने वाला',
+    autoNote:'कोई एक टारगेट टाइप करो — बाकी अपने आप बन जाएँगे (नीचे बटन दबाने की ज़रूरत नहीं)', autoYear:'साल से भरो', autoMonth:'महीने से भरो',
+    noSaveWarn:'⚠️ इस डिवाइस पर डेटा अपने आप सेव नहीं हो पा रहा — काम खत्म करके CSV/PDF ज़रूर डाउनलोड कर लो, वरना ऐप बंद होने पर डेटा उड़ जाएगा।',
+    fillRequired:'कृपया सभी ज़रूरी फ़ील्ड भरें', savedOk:'सेव हो गया', selectCustomer:'ग्राहक चुनें',
+    grossProfit:'ग्रॉस प्रॉफिट', todayNetProfit:'आज का नेट प्रॉफिट', todayTarget:'आज का टारगेट',
+    twoYearTarget:'2 साल का टारगेट', workingDays:'महीने में काम के दिन',
+    statusAhead:'आगे चल रहे हो 🟢', statusOnTrack:'टारगेट पर हो 🟡', statusBehind:'पीछे चल रहे हो 🔴',
+    shortfallToday:'आज की कमी', surplusToday:'आज का अतिरिक्त', reqTomorrow:'कल के लिए ज़रूरी प्रॉफिट',
+    remaining:'बचा हुआ', achieved:'हासिल हुआ', target:'टारगेट', status:'स्थिति', autoTwoYear:'2 साल से भरो',
+    netProfitBasis:'सभी टारगेट नेट प्रॉफिट पर आधारित हैं (सेल पर नहीं)',
+    addDue:'उधार जोड़ें (पुराना बकाया)', recordDue:'उधार दर्ज करें', dueHint:'बिना सेल एंट्री के सीधे बकाया राशि जोड़ने के लिए — जैसे पुराना हिसाब',
+    addItem:'आइटम जोड़ो', items:'सामान', noItems:'कोई प्रोडक्ट नहीं जोड़ा (सिर्फ राशि)', removeItem:'हटाएँ',
+    viewLedger:'पूरा हिसाब देखें', ledgerBalance:'चालू बकाया', manualDue:'पुराना बकाया', ledgerEmpty:'कोई लेन-देन नहीं है',
+    optional:'वैकल्पिक', autoFromItems:'सामान भरो तो अपने आप बन जाएगी', callNow:'📞 कॉल करें', downloadPdf:'PDF डाउनलोड करें',
+    history:'सेल हिस्ट्री (दिन/हफ्ता/महीना/साल)', day:'दिन', week:'हफ्ता', year:'साल', customRange:'कोई भी तारीख से तारीख तक देखें',
+    from:'से', to:'तक', viewRange:'देखें', bestPeriod:'🔥 सबसे ज़्यादा', worstPeriod:'🔻 सबसे कम', salesCount:'कुल एंट्री'
+  },
+  en: {
+    appName:'Bahi-Khata', dashboard:'Dashboard', addSale:'Add Sale', products:'Products',
+    customers:'Customers (Dues)', expenses:'Expenses', targets:'Targets', reports:'Reports',
+    todaySale:"Today's Sale", todayProfit:"Today's Profit", monthAchieved:'Month Achieved',
+    yearAchieved:'Year Achieved', pendingDues:'Pending Dues', lowStock:'Low Stock',
+    kingToday:"Today's King Product", kingMonth:"Month's King Product",
+    requiredAvg:'Needed daily for rest of month', bufferMade:'Buffer above target',
+    onTrack:'On track', addProduct:'Add Product', name:'Name', category:'Category',
+    costPrice:'Cost Price', sellPrice:'Selling Price', stockQty:'Stock Qty', lowAlert:'Low Stock Alert At',
+    save:'Save', product:'Product', qty:'Qty', discount:'Discount', paymentMode:'Payment Mode',
+    customer:'Customer', notes:'Notes', recordSale:'Record Sale', cash:'Cash', online:'Online',
+    credit:'Credit', selectProduct:'Select product', walkIn:'Walk-in customer', addCustomer:'Add Customer',
+    phone:'Phone', totalDue:'Total Due', recordPayment:'Record Payment', amount:'Amount',
+    expenseCategory:'Expense Category', addExpense:'Add Expense', date:'Date',
+    dailyTarget:'Daily Target', monthlyTarget:'Monthly Target', yearlyTarget:'Yearly Target',
+    setTargets:'Save Targets', restock:'Restock', addStock:'Add Stock', supplier:'Supplier',
+    profitTotal:'Total Profit', revenueTotal:'Total Revenue', margin:'Margin', rank:'Rank',
+    byQty:'By Quantity', byProfit:'By Profit', period:'Period', today:'Today', thisMonth:'This Month',
+    thisYear:'This Year', noData:'No data yet', delete:'Delete', edit:'Edit', netProfit:'Net Profit',
+    totalExpense:'Total Expenses', settingsNote:'Change language', reset:'Erase all data', confirmReset:'Erase all data for good?',
+    highDemand:'High Demand', due:'Due', paid:'Paid', currentStock:'Current Stock',
+    addSaleTitle:'Record a New Sale', totalCollected:'Total Collected', outstanding:'Outstanding',
+    soldToday:'Sold Today', soldMonth:'Sold This Month', exportTitle:'Download Reports',
+    csvDay:"Today's CSV", csvMonth:"Month's CSV", pdfDay:"Today's PDF", pdfMonth:"Month's PDF",
+    leastSelling:'Least Selling (This Month)', fastMoving:'Fast Moving', slowMoving:'Slow Moving',
+    autoNote:'Type any one target — the rest fill in automatically (no need to press the buttons below)', autoYear:'Fill from Yearly', autoMonth:'Fill from Monthly',
+    noSaveWarn:"⚠️ Data isn't auto-saving on this device — download a CSV/PDF backup before you close the app, or your entries will be lost.",
+    fillRequired:'Please fill all required fields', savedOk:'Saved', selectCustomer:'Select customer',
+    grossProfit:'Gross Profit', todayNetProfit:"Today's Net Profit", todayTarget:"Today's Target",
+    twoYearTarget:'2-Year Target', workingDays:'Working Days Per Month',
+    statusAhead:'Ahead 🟢', statusOnTrack:'On Track 🟡', statusBehind:'Behind 🔴',
+    shortfallToday:"Today's Shortfall", surplusToday:"Today's Surplus", reqTomorrow:'Needed Tomorrow',
+    remaining:'Remaining', achieved:'Achieved', target:'Target', status:'Status', autoTwoYear:'Fill from 2-Year',
+    netProfitBasis:'All targets are based on Net Profit (not Sales)',
+    addDue:'Add Due (old balance)', recordDue:'Record Due', dueHint:'Add an outstanding amount directly, without a sale entry — e.g. an old balance',
+    addItem:'Add Item', items:'Items', noItems:'No products added (amount only)', removeItem:'Remove',
+    viewLedger:'View Full Ledger', ledgerBalance:'Current Balance', manualDue:'Old Due', ledgerEmpty:'No transactions yet',
+    optional:'optional', autoFromItems:'auto-fills if you add items below', callNow:'📞 Call Now', downloadPdf:'Download PDF',
+    history:'Sales History (Day/Week/Month/Year)', day:'Day', week:'Week', year:'Year', customRange:'View any date range',
+    from:'From', to:'To', viewRange:'View', bestPeriod:'🔥 Highest', worstPeriod:'🔻 Lowest', salesCount:'Total Entries'
+  }
+};
+function t(key){ return T[data.lang][key] || key; }
+function fmt(n){ return '₹'+Math.round(n||0).toLocaleString('en-IN'); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+
+/* ---------------- DATE HELPERS ---------------- */
+function isToday(dateStr){ const d=new Date(dateStr), n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate(); }
+function isThisMonth(dateStr){ const d=new Date(dateStr), n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth(); }
+function isThisYear(dateStr){ const d=new Date(dateStr), n=new Date(); return d.getFullYear()===n.getFullYear(); }
+function daysInCurrentMonth(){ const n=new Date(); return new Date(n.getFullYear(), n.getMonth()+1, 0).getDate(); }
+function daysLeftInMonth(){ const n=new Date(); return Math.max(daysInCurrentMonth()-n.getDate()+1,1); }
+function daysLeftInYear(){
+  const n=new Date(); const start=new Date(n.getFullYear(),0,1);
+  const diff=Math.floor((n-start)/86400000);
+  const isLeap=(n.getFullYear()%4===0&&n.getFullYear()%100!==0)||n.getFullYear()%400===0;
+  return Math.max((isLeap?366:365)-diff,1);
+}
+
+/* ---------------- CALCULATIONS ---------------- */
+function saleProfit(s){ return (s.sellingPrice - s.costPrice) * s.qty - (s.discount||0); }
+function saleRevenue(s){ return s.sellingPrice * s.qty - (s.discount||0); }
+function filteredSales(pred){ return data.sales.filter(s=>pred(s.date)); }
+function sumRevenue(sales){ return sales.reduce((a,s)=>a+saleRevenue(s),0); }
+function sumProfit(sales){ return sales.reduce((a,s)=>a+saleProfit(s),0); }
+function periodExpenses(pred){ return data.expenses.filter(e=>pred(e.date)).reduce((a,e)=>a+Number(e.amount),0); }
+function netProfitForPeriod(pred){ return sumProfit(filteredSales(pred)) - periodExpenses(pred); }
+function workingDaysLeftInMonth(){
+  const wd = Math.max(Number(data.targets.workingDays)||26, 1);
+  const frac = daysLeftInMonth() / daysInCurrentMonth();
+  return Math.max(Math.round(wd * frac), 1);
+}
+function workingDaysElapsedInMonth(){
+  const wd = Math.max(Number(data.targets.workingDays)||26, 1);
+  const n = new Date();
+  const frac = n.getDate() / daysInCurrentMonth();
+  return Math.max(Math.round(wd * frac), 1);
+}
+function soldQtyForProduct(productId, pred){ return data.sales.filter(s=>s.productId===productId && pred(s.date)).reduce((a,s)=>a+Number(s.qty),0); }
+
+function mondayOf(d){
+  const dt = new Date(d);
+  const day = dt.getDay();
+  const diff = (day===0 ? -6 : 1-day);
+  dt.setDate(dt.getDate()+diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function groupSalesBy(by){
+  const map = {};
+  data.sales.forEach(s=>{
+    const d = new Date(s.date);
+    let key, label;
+    if(by==='day'){ key = d.toISOString().slice(0,10); label = fmtDate(s.date); }
+    else if(by==='week'){ const mon = mondayOf(d); key = mon.toISOString().slice(0,10); label = fmtDate(mon)+' →'; }
+    else if(by==='month'){ key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); label = d.toLocaleDateString('en-IN',{month:'short',year:'numeric'}); }
+    else { key = String(d.getFullYear()); label = key; }
+    if(!map[key]) map[key] = {key, label, revenue:0, profit:0};
+    map[key].revenue += saleRevenue(s);
+    map[key].profit += saleProfit(s);
+  });
+  return Object.values(map).sort((a,b)=> b.key.localeCompare(a.key));
+}
+
+function kingProducts(sales, by){
+  const map = {};
+  sales.forEach(s=>{
+    if(!map[s.productId]) map[s.productId] = {name:s.productName, qty:0, revenue:0, profit:0};
+    map[s.productId].qty += Number(s.qty);
+    map[s.productId].revenue += saleRevenue(s);
+    map[s.productId].profit += saleProfit(s);
+  });
+  const arr = Object.values(map);
+  arr.sort((a,b)=> by==='qty' ? b.qty-a.qty : b.profit-a.profit);
+  return arr;
+}
+
+function recalcCustomerDue(customerId){
+  const cust = data.customers.find(c=>c.id===customerId);
+  if(!cust) return;
+  const creditSales = data.sales.filter(s=>s.customerId===customerId && s.paymentMode==='credit').reduce((a,s)=>a+saleRevenue(s),0);
+  const manualDues = data.dues.filter(d=>d.customerId===customerId).reduce((a,d)=>a+Number(d.amount),0);
+  const paid = data.payments.filter(p=>p.customerId===customerId).reduce((a,p)=>a+Number(p.amount),0);
+  cust.totalDue = Math.max(creditSales + manualDues - paid, 0);
+}
+
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportCSV(sales, filename){
+  const rows = [['Date','Product','Qty','Selling Price','Cost Price','Discount','Revenue','Profit','Payment Mode','Customer']];
+  sales.forEach(s=>{ rows.push([fmtDate(s.date), s.productName, s.qty, s.sellingPrice, s.costPrice, s.discount||0, saleRevenue(s).toFixed(2), saleProfit(s).toFixed(2), s.paymentMode, s.customerName]); });
+  rows.push([]);
+  rows.push(['Total','','','','','', sumRevenue(sales).toFixed(2), sumProfit(sales).toFixed(2)]);
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  downloadBlob(csv, filename, 'text/csv');
+}
+function exportPDF(sales, title, filename){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 15;
+  doc.setFontSize(14); doc.text(title, 14, y); y += 8;
+  doc.setFontSize(9);
+  doc.text('Date', 14, y); doc.text('Product', 40, y); doc.text('Qty', 100, y);
+  doc.text('Revenue', 120, y); doc.text('Profit', 155, y); doc.text('Mode', 180, y);
+  y += 5; doc.line(14, y, 196, y); y += 5;
+  sales.forEach(s=>{
+    if(y > 280){ doc.addPage(); y = 15; }
+    doc.text(fmtDate(s.date), 14, y);
+    doc.text(String(s.productName).slice(0,28), 40, y);
+    doc.text(String(s.qty), 100, y);
+    doc.text(saleRevenue(s).toFixed(0), 120, y);
+    doc.text(saleProfit(s).toFixed(0), 155, y);
+    doc.text(s.paymentMode, 180, y);
+    y += 6;
+  });
+  y += 4; doc.line(14, y, 196, y); y += 7;
+  doc.setFontSize(10);
+  doc.text('Total Revenue: '+fmt(sumRevenue(sales)), 14, y); y += 6;
+  doc.text('Total Profit: '+fmt(sumProfit(sales)), 14, y);
+  doc.save(filename);
+}
+
+/* ---------------- RENDER SHELL ---------------- */
+function render(){
+  if(!loaded){
+    document.getElementById('app').innerHTML = '<div style="padding:40px;text-align:center;color:#766F5F;">Loading…</div>';
+    return;
+  }
+  const todaySales = filteredSales(isToday);
+  const monthSales = filteredSales(isThisMonth);
+  const yearSales = filteredSales(isThisYear);
+  const todayRevenue = sumRevenue(todaySales);
+  const todayProfit = sumProfit(todaySales);
+  const monthRevenue = sumRevenue(monthSales);
+  const yearRevenue = sumRevenue(yearSales);
+  const lowStockItems = data.products.filter(p=>Number(p.stockQty) <= Number(p.lowAlert||0));
+  const totalDue = data.customers.reduce((a,c)=>a+Number(c.totalDue||0),0);
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <header class="masthead">
+      <div class="masthead-row">
+        <h1>${t('appName')}</h1>
+        <div class="lang-toggle">
+          <button data-lang="hi" class="${data.lang==='hi'?'active':''}">हिंदी</button>
+          <button data-lang="en" class="${data.lang==='en'?'active':''}">EN</button>
+        </div>
+      </div>
+      <div class="date-line">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    </header>
+    ${storageMode==='none' ? `<div style="background:var(--red-bg);color:var(--red);padding:10px 20px;font-size:12.5px;">${t('noSaveWarn')}</div>` : ''}
+
+    <div class="summary-band">
+      <div class="summary-cell"><div class="label">${t('todaySale')}</div><div class="value tabular">${fmt(todayRevenue)}</div></div>
+      <div class="summary-cell"><div class="label">${t('todayProfit')}</div><div class="value tabular ${todayProfit>=0?'gold':'red'}">${fmt(todayProfit)}</div></div>
+      <div class="summary-cell"><div class="label">${t('monthAchieved')}</div><div class="value tabular">${data.targets.monthly>0 ? Math.round(monthRevenue/data.targets.monthly*100)+'%' : '—'}</div></div>
+      <div class="summary-cell"><div class="label">${t('yearAchieved')}</div><div class="value tabular">${data.targets.yearly>0 ? Math.round(yearRevenue/data.targets.yearly*100)+'%' : '—'}</div></div>
+      <div class="summary-cell"><div class="label">${t('pendingDues')}</div><div class="value tabular ${totalDue>0?'red':''}">${fmt(totalDue)}</div></div>
+      <div class="summary-cell"><div class="label">${t('lowStock')}</div><div class="value tabular ${lowStockItems.length?'red':''}">${lowStockItems.length}</div></div>
+    </div>
+
+    <div class="body-wrap">
+      <nav class="rail">
+        ${navBtn('dashboard', t('dashboard'))}
+        ${navBtn('addSale', t('addSale'))}
+        ${navBtn('products', t('products'))}
+        ${navBtn('customers', t('customers'))}
+        ${navBtn('expenses', t('expenses'))}
+        ${navBtn('targets', t('targets'))}
+        ${navBtn('reports', t('reports'))}
+      </nav>
+      <main id="main-content"></main>
+    </div>
+    <div class="footer-note">Data is stored privately to your device/account for this app.</div>
+  `;
+
+  document.querySelectorAll('.lang-toggle button').forEach(b=>{ b.onclick = ()=>{ data.lang = b.dataset.lang; saveData(); render(); }; });
+  document.querySelectorAll('nav.rail button').forEach(b=>{ b.onclick = ()=>{ activeTab = b.dataset.tab; render(); }; });
+
+  const main = document.getElementById('main-content');
+  const renderers = {
+    dashboard: renderDashboard, addSale: renderAddSale, products: renderProducts,
+    customers: renderCustomers, expenses: renderExpenses, targets: renderTargets, reports: renderReports
+  };
+  main.innerHTML = renderers[activeTab] ? renderers[activeTab]({todaySales, monthSales, yearSales, todayRevenue, todayProfit, monthRevenue, yearRevenue, lowStockItems, totalDue}) : '';
+  wireTabEvents(activeTab);
+}
+function navBtn(tab,label){ return `<button data-tab="${tab}" class="${activeTab===tab?'active':''}">${label}</button>`; }
+
+/* ---------------- DASHBOARD ---------------- */
+function targetCard(label, achieved, target, extraNote){
+  const pct = target>0 ? (achieved/target*100) : 0;
+  const remaining = Math.max(target - achieved, 0);
+  return `
+    <div class="card">
+      <h3>${label}</h3>
+      <div class="progress-line">
+        <div class="top"><span>${fmt(achieved)} / ${fmt(target)}</span><span>${pct.toFixed(1)}%</span></div>
+        <div class="progress-track"><div class="progress-fill ${pct>=100?'over':''}" style="width:${Math.min(pct,100)}%"></div></div>
+      </div>
+      ${target>0 ? `<div class="empty-note" style="padding:0;">${t('remaining')}: ${fmt(remaining)}</div>` : `<div class="empty-note" style="padding:0;">${t('setTargets')} → ${t('targets')}</div>`}
+      ${extraNote||''}
+    </div>
+  `;
+}
+
+function renderDashboard(ctx){
+  const todayNet = netProfitForPeriod(isToday);
+  const monthNet = netProfitForPeriod(isThisMonth);
+  const yearNet = netProfitForPeriod(isThisYear);
+  const monthGross = sumProfit(ctx.monthSales);
+
+  const monthPending = Math.max(data.targets.monthly - monthNet, 0);
+  const wdLeft = workingDaysLeftInMonth();
+  const wdElapsed = workingDaysElapsedInMonth();
+  const reqDaily = monthPending>0 ? monthPending/wdLeft : 0;
+  const buffer = monthNet - data.targets.monthly;
+  const todayVsDaily = todayNet - Number(data.targets.daily||0);
+
+  const avgDailySoFar = monthNet / wdElapsed;
+  const projected = avgDailySoFar * Math.max(Number(data.targets.workingDays)||26,1);
+  let status = t('statusOnTrack');
+  if(data.targets.monthly>0){
+    if(projected >= data.targets.monthly*1.03) status = t('statusAhead');
+    else if(projected <= data.targets.monthly*0.97) status = t('statusBehind');
+  }
+
+  const kingTodayQty = kingProducts(ctx.todaySales,'qty')[0];
+  const kingMonthQty = kingProducts(ctx.monthSales,'qty')[0];
+
+  return `
+    <h2 class="section-title">${t('dashboard')}</h2>
+    <div class="empty-note" style="padding:0 0 14px;">${t('netProfitBasis')}</div>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <h3>${t('today')}</h3>
+          <table>
+            <tbody>
+              <tr><td>${t('todaySale')}</td><td class="num tabular">${fmt(ctx.todayRevenue)}</td></tr>
+              <tr><td>${t('grossProfit')}</td><td class="num tabular">${fmt(sumProfit(ctx.todaySales))}</td></tr>
+              <tr><td>${t('todayNetProfit')}</td><td class="num tabular ${todayNet>=0?'':''}" style="color:${todayNet>=0?'var(--gold)':'var(--red)'}">${fmt(todayNet)}</td></tr>
+              <tr><td>${t('todayTarget')}</td><td class="num tabular">${fmt(data.targets.daily)}</td></tr>
+            </tbody>
+          </table>
+          ${data.targets.daily>0 ? (todayVsDaily>=0
+            ? `<div class="badge gold">${t('surplusToday')}: ${fmt(todayVsDaily)}</div>`
+            : `<div class="badge red">${t('shortfallToday')}: ${fmt(-todayVsDaily)}</div>`) : ''}
+          <div style="margin-top:8px;"><span class="badge ${status===t('statusBehind')?'red':'gold'}">${t('status')}: ${status}</span></div>
+        </div>
+        ${targetCard(t('monthlyTarget'), monthNet, data.targets.monthly,
+          data.targets.monthly>0 ? (buffer>=0
+            ? `<div class="badge gold" style="margin-top:8px;">${t('bufferMade')}: ${fmt(buffer)}</div>`
+            : `<div class="badge red" style="margin-top:8px;">${t('requiredAvg')}: ${fmt(reqDaily)}</div>`) : '')}
+        ${targetCard(t('yearlyTarget'), yearNet, data.targets.yearly)}
+        ${data.targets.twoYear>0 ? targetCard(t('twoYearTarget'), netProfitForPeriod(()=>true), data.targets.twoYear) : ''}
+      </div>
+      <div>
+        <div class="card">
+          <h3>${t('kingToday')}</h3>
+          ${kingTodayQty ? `<div style="font-size:16px;font-weight:700;">${kingTodayQty.name}</div><div class="empty-note" style="padding:4px 0 0;">${kingTodayQty.qty} ${t('qty')} · ${fmt(kingTodayQty.profit)} ${t('profitTotal')}</div>` : `<div class="empty-note">${t('noData')}</div>`}
+        </div>
+        <div class="card">
+          <h3>${t('kingMonth')}</h3>
+          ${kingMonthQty ? `<div style="font-size:16px;font-weight:700;">${kingMonthQty.name}</div><div class="empty-note" style="padding:4px 0 0;">${kingMonthQty.qty} ${t('qty')} · ${fmt(kingMonthQty.profit)} ${t('profitTotal')}</div>` : `<div class="empty-note">${t('noData')}</div>`}
+        </div>
+        <div class="card">
+          <h3>${t('lowStock')}</h3>
+          ${ctx.lowStockItems.length ? ctx.lowStockItems.map(p=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13.5px;"><span>${p.name}</span><span class="tabular" style="color:var(--red);">${p.stockQty}</span></div>`).join('') : `<div class="empty-note">${t('noData')}</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- ADD SALE ---------------- */
+function renderAddSale(){
+  const productOptions = data.products.map(p=>`<option value="${p.id}">${p.name} (${t('currentStock')}: ${p.stockQty})</option>`).join('');
+  const customerOptions = data.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  return `
+    <h2 class="section-title">${t('addSaleTitle')}</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="field">
+          <label>${t('product')} *</label>
+          <select id="sale-product"><option value="">${t('selectProduct')}</option>${productOptions}</select>
+        </div>
+        <div class="row2">
+          <div class="field"><label>${t('qty')} *</label><input type="number" id="sale-qty" min="1" step="1"></div>
+          <div class="field"><label>${t('discount')}</label><input type="number" id="sale-discount" min="0" step="1" value="0"></div>
+        </div>
+        <div class="field">
+          <label>${t('paymentMode')}</label>
+          <select id="sale-paymentMode">
+            <option value="cash">${t('cash')}</option>
+            <option value="online">${t('online')}</option>
+            <option value="credit">${t('credit')}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>${t('customer')}</label>
+          <select id="sale-customer"><option value="">${t('walkIn')}</option>${customerOptions}</select>
+        </div>
+        <div class="field"><label>${t('notes')}</label><input type="text" id="sale-notes"></div>
+        <button type="button" class="btn" id="sale-submit">${t('recordSale')}</button>
+      </div>
+      <div class="card">
+        <h3>${t('today')} — ${t('addSale')}</h3>
+        <table>
+          <thead><tr><th>${t('product')}</th><th class="num">${t('qty')}</th><th class="num">${t('profitTotal')}</th></tr></thead>
+          <tbody>
+            ${data.sales.filter(s=>isToday(s.date)).slice().reverse().map(s=>`
+              <tr><td>${s.productName}</td><td class="num tabular">${s.qty}</td><td class="num tabular">${fmt(saleProfit(s))}</td></tr>
+            `).join('') || `<tr><td colspan="3" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- PRODUCTS ---------------- */
+function renderProducts(){
+  return `
+    <h2 class="section-title">${t('products')}</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>${t('addProduct')}</h3>
+        <div class="field"><label>${t('name')} *</label><input type="text" id="prod-name"></div>
+        <div class="field"><label>${t('category')}</label><input type="text" id="prod-category"></div>
+        <div class="row2">
+          <div class="field"><label>${t('costPrice')} *</label><input type="number" id="prod-cost" min="0" step="0.01"></div>
+          <div class="field"><label>${t('sellPrice')} *</label><input type="number" id="prod-sell" min="0" step="0.01"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>${t('stockQty')}</label><input type="number" id="prod-stock" min="0" step="1" value="0"></div>
+          <div class="field"><label>${t('lowAlert')}</label><input type="number" id="prod-lowalert" min="0" step="1" value="0"></div>
+        </div>
+        <button type="button" class="btn" id="product-submit">${t('save')}</button>
+      </div>
+      <div class="card">
+        <h3>${t('products')}</h3>
+        <table>
+          <thead><tr><th>${t('name')}</th><th class="num">${t('soldToday')}</th><th class="num">${t('soldMonth')}</th><th class="num">${t('stockQty')}</th><th></th></tr></thead>
+          <tbody>
+          ${data.products.slice().sort((a,b)=>soldQtyForProduct(b.id,isThisMonth)-soldQtyForProduct(a.id,isThisMonth)).map(p=>`
+            <tr class="${Number(p.stockQty)<=Number(p.lowAlert||0)?'low-stock':''}">
+              <td>${p.name}</td>
+              <td class="num tabular">${soldQtyForProduct(p.id,isToday)}</td>
+              <td class="num tabular">${soldQtyForProduct(p.id,isThisMonth)}</td>
+              <td class="num tabular">${p.stockQty}</td>
+              <td style="white-space:nowrap;">
+                <button class="small-link" data-restock="${p.id}">${t('addStock')}</button>
+                &nbsp;·&nbsp;
+                <button class="small-link" data-delprod="${p.id}">${t('delete')}</button>
+              </td>
+            </tr>
+          `).join('') || `<tr><td colspan="5" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- CUSTOMERS ---------------- */
+function renderCustomers(){
+  return `
+    <h2 class="section-title">${t('customers')}</h2>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <h3>${t('addCustomer')}</h3>
+          <div class="field"><label>${t('name')} *</label><input type="text" id="cust-name"></div>
+          <div class="field"><label>${t('phone')}</label><input type="text" id="cust-phone"></div>
+          <button type="button" class="btn" id="customer-submit">${t('save')}</button>
+        </div>
+        <div class="card">
+          <h3>${t('addDue')}</h3>
+          <div class="empty-note" style="padding:0 0 10px;">${t('dueHint')}</div>
+          <div class="field">
+            <label>${t('customer')} *</label>
+            <select id="due-customer">
+              <option value="">${t('selectCustomer')}</option>
+              ${data.customers.map(c=>`<option value="${c.id}">${c.name} (${t('due')}: ${fmt(c.totalDue)})</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>${t('items')} (${t('product')}) — ${t('optional')}</label>
+            <div id="due-rows"></div>
+            <button type="button" class="btn secondary" id="due-row-add" style="margin-top:6px;">+ ${t('addItem')}</button>
+          </div>
+          <div class="field"><label>${t('amount')} * <span style="font-weight:400;color:var(--ink-muted);">(${t('autoFromItems')})</span></label><input type="number" id="due-amount" min="1" step="1"></div>
+          <button type="button" class="btn" id="due-submit">${t('recordDue')}</button>
+        </div>
+        <div class="card">
+          <h3>${t('recordPayment')}</h3>
+          <div class="field">
+            <label>${t('customer')} *</label>
+            <select id="pay-customer">
+              <option value="">${t('selectCustomer')}</option>
+              ${data.customers.map(c=>`<option value="${c.id}">${c.name} (${t('due')}: ${fmt(c.totalDue)})</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>${t('amount')} *</label><input type="number" id="pay-amount" min="1" step="1"></div>
+          <button type="button" class="btn" id="payment-submit">${t('recordPayment')}</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>${t('customers')}</h3>
+        <table>
+          <thead><tr><th>${t('name')}</th><th>${t('phone')}</th><th class="num">${t('totalDue')}</th><th></th></tr></thead>
+          <tbody>
+          ${data.customers.map(c=>`
+            <tr><td>${c.name}</td><td>${c.phone||'—'}</td><td class="num tabular" style="color:${c.totalDue>0?'var(--red)':'inherit'}">${fmt(c.totalDue)}</td><td><button class="small-link" data-viewledger="${c.id}">${t('viewLedger')}</button></td></tr>
+          `).join('') || `<tr><td colspan="4" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>${t('addDue')} — ${t('date')}</h3>
+        <table>
+          <thead><tr><th>${t('customer')}</th><th class="num">${t('amount')}</th><th>${t('items')}</th><th>${t('date')}</th><th></th></tr></thead>
+          <tbody>
+          ${data.dues.slice().reverse().map(d=>{
+            const c = data.customers.find(c=>c.id===d.customerId);
+            const itemsText = (d.items && d.items.length) ? d.items.map(it=>it.productName+' x'+it.qty).join(', ') : '—';
+            return `<tr><td>${c?c.name:'—'}</td><td class="num tabular">${fmt(d.amount)}</td><td style="font-size:12px;color:var(--ink-muted);">${itemsText}</td><td>${fmtDate(d.date)}</td><td><button class="small-link" data-deldue="${d.id}">${t('delete')}</button></td></tr>`;
+          }).join('') || `<tr><td colspan="5" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- EXPENSES ---------------- */
+function renderExpenses(){
+  const monthTotal = periodExpenses(isThisMonth);
+  return `
+    <h2 class="section-title">${t('expenses')}</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>${t('addExpense')}</h3>
+        <div class="field"><label>${t('expenseCategory')} *</label><input type="text" id="exp-category"></div>
+        <div class="field"><label>${t('amount')} *</label><input type="number" id="exp-amount" min="1" step="1"></div>
+        <div class="field"><label>${t('notes')}</label><input type="text" id="exp-notes"></div>
+        <button type="button" class="btn" id="expense-submit">${t('save')}</button>
+      </div>
+      <div class="card">
+        <h3>${t('thisMonth')} — ${t('totalExpense')}: <span class="tabular">${fmt(monthTotal)}</span></h3>
+        <table>
+          <thead><tr><th>${t('expenseCategory')}</th><th class="num">${t('amount')}</th><th>${t('date')}</th></tr></thead>
+          <tbody>
+          ${data.expenses.slice().reverse().map(e=>`
+            <tr><td>${e.category}</td><td class="num tabular">${fmt(e.amount)}</td><td>${fmtDate(e.date)}</td></tr>
+          `).join('') || `<tr><td colspan="3" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- TARGETS ---------------- */
+function renderTargets(){
+  return `
+    <h2 class="section-title">${t('targets')}</h2>
+    <div class="card" style="max-width:420px;">
+      <div class="empty-note" style="padding:0 0 12px;">${t('autoNote')} — ${t('netProfitBasis')}</div>
+      <div class="field"><label>${t('workingDays')}</label><input type="number" id="target-workingdays" min="1" max="31" value="${data.targets.workingDays||26}"></div>
+      <div class="field"><label>${t('twoYearTarget')}</label><input type="number" id="target-twoyear" min="0" value="${data.targets.twoYear||0}"></div>
+      <button type="button" class="btn secondary" id="auto-twoyear" style="margin-bottom:14px;">${t('autoTwoYear')}</button>
+      <div class="field"><label>${t('yearlyTarget')}</label><input type="number" id="target-yearly" min="0" value="${data.targets.yearly}"></div>
+      <button type="button" class="btn secondary" id="auto-year" style="margin-bottom:14px;">${t('autoYear')}</button>
+      <div class="field"><label>${t('monthlyTarget')}</label><input type="number" id="target-monthly" min="0" value="${data.targets.monthly}"></div>
+      <button type="button" class="btn secondary" id="auto-month" style="margin-bottom:14px;">${t('autoMonth')}</button>
+      <div class="field"><label>${t('dailyTarget')}</label><input type="number" id="target-daily" min="0" value="${data.targets.daily}"></div>
+      <button type="button" class="btn" id="targets-submit">${t('setTargets')}</button>
+    </div>
+    <div class="card" style="max-width:420px;">
+      <h3>${t('settingsNote')}</h3>
+      <button class="btn danger" id="reset-btn">${t('reset')}</button>
+    </div>
+  `;
+}
+
+/* ---------------- REPORTS ---------------- */
+function renderReports(ctx){
+  const kq = kingProducts(ctx.monthSales,'qty');
+  const kp = kingProducts(ctx.monthSales,'profit');
+  const leastQty = kq.slice().reverse();
+  const netProfitMonth = sumProfit(ctx.monthSales) - periodExpenses(isThisMonth);
+  return `
+    <h2 class="section-title">${t('reports')}</h2>
+    <div class="card">
+      <h3>${t('exportTitle')}</h3>
+      <div class="btn-row">
+        <button class="btn secondary" id="csv-day">${t('csvDay')}</button>
+        <button class="btn secondary" id="csv-month">${t('csvMonth')}</button>
+        <button class="btn" id="pdf-day">${t('pdfDay')}</button>
+        <button class="btn" id="pdf-month">${t('pdfMonth')}</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>${t('leastSelling')}</h3>
+      <table>
+        <thead><tr><th>${t('rank')}</th><th>${t('product')}</th><th class="num">${t('qty')}</th></tr></thead>
+        <tbody>
+        ${leastQty.slice(0,5).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td class="num tabular">${p.qty}</td></tr>`).join('') || `<tr><td colspan="3" class="empty-note">${t('noData')}</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>${t('thisMonth')}</h3>
+      <table>
+        <tbody>
+          <tr><td>${t('revenueTotal')}</td><td class="num tabular">${fmt(ctx.monthRevenue)}</td></tr>
+          <tr><td>${t('profitTotal')}</td><td class="num tabular">${fmt(sumProfit(ctx.monthSales))}</td></tr>
+          <tr><td>${t('totalExpense')}</td><td class="num tabular">${fmt(periodExpenses(isThisMonth))}</td></tr>
+          <tr><td><strong>${t('netProfit')}</strong></td><td class="num tabular"><strong>${fmt(netProfitMonth)}</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>${t('byQty')} — ${t('thisMonth')}</h3>
+        <table>
+          <thead><tr><th>${t('rank')}</th><th>${t('product')}</th><th class="num">${t('qty')}</th></tr></thead>
+          <tbody>
+          ${kq.slice(0,8).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td class="num tabular">${p.qty}</td></tr>`).join('') || `<tr><td colspan="3" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>${t('byProfit')} — ${t('thisMonth')}</h3>
+        <table>
+          <thead><tr><th>${t('rank')}</th><th>${t('product')}</th><th class="num">${t('profitTotal')}</th></tr></thead>
+          <tbody>
+          ${kp.slice(0,8).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td class="num tabular">${fmt(p.profit)}</td></tr>`).join('') || `<tr><td colspan="3" class="empty-note">${t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>${t('history')}</h3>
+      <div class="btn-row" style="margin-bottom:12px;">
+        <button type="button" class="btn ${historyGroupBy==='day'?'':'secondary'}" data-hgroup="day">${t('day')}</button>
+        <button type="button" class="btn ${historyGroupBy==='week'?'':'secondary'}" data-hgroup="week">${t('week')}</button>
+        <button type="button" class="btn ${historyGroupBy==='month'?'':'secondary'}" data-hgroup="month">${t('thisMonth')}</button>
+        <button type="button" class="btn ${historyGroupBy==='year'?'':'secondary'}" data-hgroup="year">${t('year')}</button>
+      </div>
+      ${(()=>{
+        const grouped = groupSalesBy(historyGroupBy);
+        if(!grouped.length) return `<div class="empty-note">${t('noData')}</div>`;
+        const best = grouped.reduce((a,b)=>b.revenue>a.revenue?b:a);
+        const worst = grouped.reduce((a,b)=>b.revenue<a.revenue?b:a);
+        const rowsHtml = grouped.slice(0,60).map(g=>`<tr><td>${g.label}</td><td class="num tabular">${fmt(g.revenue)}</td><td class="num tabular">${fmt(g.profit)}</td></tr>`).join('');
+        return `
+          ${grouped.length>1 ? `<div style="margin-bottom:10px;font-size:12.5px;">
+            <div>${t('bestPeriod')}: <strong>${best.label}</strong> — ${fmt(best.revenue)}</div>
+            <div>${t('worstPeriod')}: <strong>${worst.label}</strong> — ${fmt(worst.revenue)}</div>
+          </div>` : ''}
+          <table>
+            <thead><tr><th>${t('period')}</th><th class="num">${t('revenueTotal')}</th><th class="num">${t('profitTotal')}</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
+      })()}
+    </div>
+    <div class="card">
+      <h3>${t('customRange')}</h3>
+      <div class="row2">
+        <div class="field"><label>${t('from')}</label><input type="date" id="hist-from" value="${historyFrom}"></div>
+        <div class="field"><label>${t('to')}</label><input type="date" id="hist-to" value="${historyTo}"></div>
+      </div>
+      <button type="button" class="btn" id="hist-range-btn">${t('viewRange')}</button>
+      <div id="hist-range-result" style="margin-top:12px;"></div>
+    </div>
+  `;
+}
+
+function customerLedgerHTML(customerId){
+  const cust = data.customers.find(c=>c.id===customerId);
+  if(!cust) return `<div class="empty-note">${t('noData')}</div>`;
+  const creditSales = data.sales.filter(s=>s.customerId===customerId && s.paymentMode==='credit');
+  const dues = data.dues.filter(d=>d.customerId===customerId);
+  const payments = data.payments.filter(p=>p.customerId===customerId);
+  const rows = [];
+  creditSales.forEach(s=> rows.push({date:s.date, desc:s.productName+' × '+s.qty, amount:saleRevenue(s), type:'due'}));
+  dues.forEach(d=> rows.push({date:d.date, desc:(d.items&&d.items.length)?d.items.map(it=>it.productName+' × '+it.qty).join(', '):t('manualDue'), amount:d.amount, type:'due'}));
+  payments.forEach(p=> rows.push({date:p.date, desc:t('paid'), amount:p.amount, type:'payment'}));
+  rows.sort((a,b)=> new Date(a.date)-new Date(b.date));
+  let running = 0;
+  const rowsHtml = rows.map(r=>{
+    running += (r.type==='due' ? r.amount : -r.amount);
+    return `<tr><td>${fmtDate(r.date)}</td><td style="font-size:12.5px;">${r.desc}</td><td class="num tabular" style="color:${r.type==='due'?'var(--red)':'var(--gold)'}">${r.type==='due'?'+':'−'}${fmt(r.amount)}</td><td class="num tabular">${fmt(Math.max(running,0))}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" class="empty-note">${t('ledgerEmpty')}</td></tr>`;
+  return `
+    <h3 style="margin:0 0 4px;">${cust.name}</h3>
+    <div class="empty-note" style="padding:0 0 10px;">${cust.phone||''}</div>
+    <div class="btn-row" style="margin-bottom:14px;">
+      ${cust.phone ? `<a href="tel:${cust.phone}" class="btn secondary" style="text-decoration:none;display:inline-flex;align-items:center;">${t('callNow')}</a>` : ''}
+      <button type="button" class="btn" id="ledger-pdf-btn">${t('downloadPdf')}</button>
+    </div>
+    <table>
+      <thead><tr><th>${t('date')}</th><th>${t('items')}</th><th class="num">${t('amount')}</th><th class="num">${t('totalDue')}</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div style="margin-top:14px;padding-top:10px;border-top:1.5px solid var(--ink);font-size:15px;font-weight:700;display:flex;justify-content:space-between;">
+      <span>${t('ledgerBalance')}</span><span class="tabular" style="color:${cust.totalDue>0?'var(--red)':'var(--gold)'}">${fmt(cust.totalDue)}</span>
+    </div>
+  `;
+}
+
+function exportCustomerLedgerPDF(customerId){
+  const cust = data.customers.find(c=>c.id===customerId);
+  if(!cust) return;
+  const creditSales = data.sales.filter(s=>s.customerId===customerId && s.paymentMode==='credit');
+  const dues = data.dues.filter(d=>d.customerId===customerId);
+  const payments = data.payments.filter(p=>p.customerId===customerId);
+  const rows = [];
+  creditSales.forEach(s=> rows.push({date:s.date, desc:s.productName+' x '+s.qty, amount:saleRevenue(s), type:'due'}));
+  dues.forEach(d=> rows.push({date:d.date, desc:(d.items&&d.items.length)?d.items.map(it=>it.productName+' x '+it.qty).join(', '):'Old due', amount:d.amount, type:'due'}));
+  payments.forEach(p=> rows.push({date:p.date, desc:'Paid', amount:p.amount, type:'payment'}));
+  rows.sort((a,b)=> new Date(a.date)-new Date(b.date));
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 15;
+  doc.setFontSize(14); doc.text(cust.name+' - Account Statement', 14, y); y += 7;
+  doc.setFontSize(10);
+  if(cust.phone){ doc.text('Phone: '+cust.phone, 14, y); y += 6; }
+  doc.text('Date: '+new Date().toLocaleDateString('en-IN'), 14, y); y += 8;
+  doc.setFontSize(9);
+  doc.text('Date', 14, y); doc.text('Details', 40, y); doc.text('Amount', 145, y); doc.text('Balance', 175, y);
+  y += 5; doc.line(14, y, 196, y); y += 5;
+  let running = 0;
+  rows.forEach(r=>{
+    if(y > 280){ doc.addPage(); y = 15; }
+    running += (r.type==='due' ? r.amount : -r.amount);
+    doc.text(fmtDate(r.date), 14, y);
+    doc.text(String(r.desc).slice(0,50), 40, y);
+    doc.text((r.type==='due'?'+':'-')+Math.round(r.amount), 145, y);
+    doc.text(String(Math.round(Math.max(running,0))), 175, y);
+    y += 6;
+  });
+  y += 4; doc.line(14, y, 196, y); y += 8;
+  doc.setFontSize(11);
+  doc.text('Current Balance: '+fmt(cust.totalDue), 14, y);
+  doc.save((cust.name||'customer').replace(/\s+/g,'_')+'_statement.pdf');
+}
+
+/* ---------------- EVENT WIRING PER TAB ---------------- */
+function markError(id){ const el=document.getElementById(id); if(el) el.classList.add('field-error'); }
+function clearErrors(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('field-error'); }); }
+
+function wireTabEvents(tab){
+  if(tab==='addSale'){
+    const btn = document.getElementById('sale-submit');
+    if(btn) btn.onclick = ()=>{
+      const ids = ['sale-product','sale-qty'];
+      clearErrors(ids);
+      const productId = val('sale-product');
+      const qty = numVal('sale-qty');
+      let bad = false;
+      if(!productId){ markError('sale-product'); bad = true; }
+      if(!qty || qty<1){ markError('sale-qty'); bad = true; }
+      if(bad){ showToast(t('fillRequired')); return; }
+      const product = data.products.find(p=>p.id===productId);
+      if(!product) return;
+      const customerId = val('sale-customer') || null;
+      const customer = customerId ? data.customers.find(c=>c.id===customerId) : null;
+      const sale = {
+        id: uid(), productId, productName: product.name, qty,
+        sellingPrice: Number(product.sellingPrice), costPrice: Number(product.costPrice),
+        discount: numVal('sale-discount'), paymentMode: val('sale-paymentMode'),
+        customerId: customerId, customerName: customer ? customer.name : t('walkIn'),
+        date: new Date().toISOString(), notes: val('sale-notes')
+      };
+      data.sales.push(sale);
+      product.stockQty = Math.max(Number(product.stockQty) - qty, 0);
+      if(customerId) recalcCustomerDue(customerId);
+      saveData(); render();
+    };
+  }
+  if(tab==='products'){
+    const btn = document.getElementById('product-submit');
+    if(btn) btn.onclick = ()=>{
+      const ids = ['prod-name','prod-cost','prod-sell'];
+      clearErrors(ids);
+      const name = val('prod-name').trim();
+      const cost = numVal('prod-cost');
+      const sell = numVal('prod-sell');
+      let bad = false;
+      if(!name){ markError('prod-name'); bad = true; }
+      if(cost<=0){ markError('prod-cost'); bad = true; }
+      if(sell<=0){ markError('prod-sell'); bad = true; }
+      if(bad){ showToast(t('fillRequired')); return; }
+      data.products.push({
+        id: uid(), name, category: val('prod-category'),
+        costPrice: cost, sellingPrice: sell,
+        stockQty: numVal('prod-stock'), lowAlert: numVal('prod-lowalert')
+      });
+      saveData(); render();
+    };
+    document.querySelectorAll('[data-restock]').forEach(b=>{
+      b.onclick = ()=>{
+        showPromptModal(t('addStock')+' — '+t('qty'), (n)=>{
+          const p = data.products.find(p=>p.id===b.dataset.restock);
+          p.stockQty = Number(p.stockQty) + n;
+          data.purchases.push({id:uid(), productId:p.id, quantity:n, date:new Date().toISOString()});
+          saveData(); render();
+        });
+      };
+    });
+    document.querySelectorAll('[data-delprod]').forEach(b=>{
+      b.onclick = ()=>{ data.products = data.products.filter(p=>p.id!==b.dataset.delprod); saveData(); render(); };
+    });
+  }
+  if(tab==='customers'){
+    document.querySelectorAll('[data-viewledger]').forEach(b=>{
+      b.onclick = ()=>{
+        showModal(customerLedgerHTML(b.dataset.viewledger));
+        const pdfBtn = document.getElementById('ledger-pdf-btn');
+        if(pdfBtn) pdfBtn.onclick = ()=> exportCustomerLedgerPDF(b.dataset.viewledger);
+      };
+    });
+    const cbtn = document.getElementById('customer-submit');
+    if(cbtn) cbtn.onclick = ()=>{
+      clearErrors(['cust-name']);
+      const name = val('cust-name').trim();
+      if(!name){ markError('cust-name'); showToast(t('fillRequired')); return; }
+      data.customers.push({id:uid(), name, phone:val('cust-phone'), totalDue:0});
+      saveData(); render();
+    };
+    function renderDueRows(){
+      const box = document.getElementById('due-rows');
+      if(!box) return;
+      box.innerHTML = dueRows.map((r,i)=>`
+        <div class="row2" style="margin-bottom:6px;align-items:center;" data-rowidx="${i}">
+          <select class="due-row-product" data-idx="${i}">
+            <option value="">${t('selectProduct')}</option>
+            ${data.products.map(p=>`<option value="${p.id}" ${r.productId===p.id?'selected':''}>${p.name}</option>`).join('')}
+          </select>
+          <div style="display:flex;gap:6px;">
+            <input type="number" class="due-row-qty" data-idx="${i}" min="1" step="1" placeholder="${t('qty')}" value="${r.qty||''}" style="flex:1;">
+            ${dueRows.length>1 ? `<button type="button" class="small-link" data-rmrow="${i}">✕</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+      box.querySelectorAll('.due-row-product').forEach(sel=>{
+        sel.onchange = ()=>{ dueRows[Number(sel.dataset.idx)].productId = sel.value; updateDueAmountFromRows(); };
+      });
+      box.querySelectorAll('.due-row-qty').forEach(inp=>{
+        inp.oninput = ()=>{ dueRows[Number(inp.dataset.idx)].qty = Number(inp.value)||0; updateDueAmountFromRows(); };
+      });
+      box.querySelectorAll('[data-rmrow]').forEach(b=>{
+        b.onclick = ()=>{ dueRows.splice(Number(b.dataset.rmrow),1); renderDueRows(); updateDueAmountFromRows(); };
+      });
+    }
+    function updateDueAmountFromRows(){
+      let total = 0;
+      dueRows.forEach(r=>{
+        if(r.productId && r.qty>0){
+          const p = data.products.find(p=>p.id===r.productId);
+          if(p) total += Number(p.sellingPrice)*r.qty;
+        }
+      });
+      if(total>0){ const amtEl=document.getElementById('due-amount'); if(amtEl) amtEl.value = total; }
+    }
+    renderDueRows();
+    const rowAddBtn = document.getElementById('due-row-add');
+    if(rowAddBtn) rowAddBtn.onclick = ()=>{ dueRows.push({productId:'',qty:''}); renderDueRows(); };
+    const dbtn = document.getElementById('due-submit');
+    if(dbtn) dbtn.onclick = ()=>{
+      clearErrors(['due-customer','due-amount']);
+      const customerId = val('due-customer');
+      const amount = numVal('due-amount');
+      let bad = false;
+      if(!customerId){ markError('due-customer'); bad = true; }
+      if(!amount || amount<=0){ markError('due-amount'); bad = true; }
+      if(bad){ showToast(t('fillRequired')); return; }
+      const items = dueRows.filter(r=>r.productId && r.qty>0).map(r=>{
+        const p = data.products.find(p=>p.id===r.productId);
+        return { productId:r.productId, productName:p?p.name:'', qty:r.qty, price:p?Number(p.sellingPrice):0 };
+      });
+      data.dues.push({id:uid(), customerId, amount, items, date:new Date().toISOString()});
+      dueRows = [{productId:'',qty:''}];
+      recalcCustomerDue(customerId);
+      saveData(); render();
+    };
+    document.querySelectorAll('[data-deldue]').forEach(b=>{
+      b.onclick = ()=>{
+        const due = data.dues.find(d=>d.id===b.dataset.deldue);
+        data.dues = data.dues.filter(d=>d.id!==b.dataset.deldue);
+        if(due) recalcCustomerDue(due.customerId);
+        saveData(); render();
+      };
+    });
+    const pbtn = document.getElementById('payment-submit');
+    if(pbtn) pbtn.onclick = ()=>{
+      clearErrors(['pay-customer','pay-amount']);
+      const customerId = val('pay-customer');
+      const amount = numVal('pay-amount');
+      let bad = false;
+      if(!customerId){ markError('pay-customer'); bad = true; }
+      if(!amount || amount<=0){ markError('pay-amount'); bad = true; }
+      if(bad){ showToast(t('fillRequired')); return; }
+      data.payments.push({id:uid(), customerId, amount, date:new Date().toISOString()});
+      recalcCustomerDue(customerId);
+      saveData(); render();
+    };
+  }
+  if(tab==='expenses'){
+    const btn = document.getElementById('expense-submit');
+    if(btn) btn.onclick = ()=>{
+      clearErrors(['exp-category','exp-amount']);
+      const category = val('exp-category').trim();
+      const amount = numVal('exp-amount');
+      let bad = false;
+      if(!category){ markError('exp-category'); bad = true; }
+      if(!amount || amount<=0){ markError('exp-amount'); bad = true; }
+      if(bad){ showToast(t('fillRequired')); return; }
+      data.expenses.push({id:uid(), category, amount, notes:val('exp-notes'), date:new Date().toISOString()});
+      saveData(); render();
+    };
+  }
+  if(tab==='targets'){
+    const wd = ()=> Math.max(numVal('target-workingdays')||26,1);
+    const twoYearEl = document.getElementById('target-twoyear');
+    const yearlyEl = document.getElementById('target-yearly');
+    const monthlyEl = document.getElementById('target-monthly');
+    const dailyEl = document.getElementById('target-daily');
+    const wdEl = document.getElementById('target-workingdays');
+    if(twoYearEl) twoYearEl.oninput = ()=>{
+      const twoYear = numVal('target-twoyear');
+      if(!twoYear) return;
+      const yearly = twoYear/2, monthly = yearly/12;
+      yearlyEl.value = Math.round(yearly);
+      monthlyEl.value = Math.round(monthly);
+      dailyEl.value = Math.round(monthly/wd());
+    };
+    if(yearlyEl) yearlyEl.oninput = ()=>{
+      const yearly = numVal('target-yearly');
+      if(!yearly) return;
+      const monthly = yearly/12;
+      monthlyEl.value = Math.round(monthly);
+      dailyEl.value = Math.round(monthly/wd());
+    };
+    if(monthlyEl) monthlyEl.oninput = ()=>{
+      const monthly = numVal('target-monthly');
+      if(!monthly) return;
+      dailyEl.value = Math.round(monthly/wd());
+    };
+    if(wdEl) wdEl.oninput = ()=>{
+      const monthly = numVal('target-monthly');
+      if(monthly) dailyEl.value = Math.round(monthly/wd());
+    };
+    const autoTwoYearBtn = document.getElementById('auto-twoyear');
+    if(autoTwoYearBtn) autoTwoYearBtn.onclick = ()=> twoYearEl.oninput();
+    const autoYearBtn = document.getElementById('auto-year');
+    if(autoYearBtn) autoYearBtn.onclick = ()=> yearlyEl.oninput();
+    const autoMonthBtn = document.getElementById('auto-month');
+    if(autoMonthBtn) autoMonthBtn.onclick = ()=> monthlyEl.oninput();
+    const btn = document.getElementById('targets-submit');
+    if(btn) btn.onclick = ()=>{
+      data.targets = {
+        daily:numVal('target-daily'), monthly:numVal('target-monthly'), yearly:numVal('target-yearly'),
+        twoYear:numVal('target-twoyear'), workingDays: Math.max(numVal('target-workingdays')||26,1)
+      };
+      saveData(); render();
+    };
+    const resetBtn = document.getElementById('reset-btn');
+    if(resetBtn) resetBtn.onclick = ()=>{
+      showConfirmModal(t('confirmReset'), ()=>{ data = JSON.parse(JSON.stringify(DEFAULT_DATA)); saveData(); render(); });
+    };
+  }
+  if(tab==='reports'){
+    document.querySelectorAll('[data-hgroup]').forEach(b=>{
+      b.onclick = ()=>{ historyGroupBy = b.dataset.hgroup; render(); };
+    });
+    const histBtn = document.getElementById('hist-range-btn');
+    if(histBtn) histBtn.onclick = ()=>{
+      historyFrom = val('hist-from');
+      historyTo = val('hist-to');
+      const resultBox = document.getElementById('hist-range-result');
+      if(!historyFrom || !historyTo){ showToast(t('fillRequired')); return; }
+      const fromDate = new Date(historyFrom+'T00:00:00');
+      const toDate = new Date(historyTo+'T23:59:59');
+      const rangeSales = data.sales.filter(s=>{ const d=new Date(s.date); return d>=fromDate && d<=toDate; });
+      const rev = sumRevenue(rangeSales), prof = sumProfit(rangeSales);
+      if(resultBox) resultBox.innerHTML = `
+        <table><tbody>
+          <tr><td>${t('revenueTotal')}</td><td class="num tabular">${fmt(rev)}</td></tr>
+          <tr><td>${t('profitTotal')}</td><td class="num tabular">${fmt(prof)}</td></tr>
+          <tr><td>${t('salesCount')}</td><td class="num tabular">${rangeSales.length}</td></tr>
+        </tbody></table>
+      `;
+    };
+    const csvDay = document.getElementById('csv-day');
+    if(csvDay) csvDay.onclick = ()=> exportCSV(filteredSales(isToday), 'sale-report-today.csv');
+    const csvMonth = document.getElementById('csv-month');
+    if(csvMonth) csvMonth.onclick = ()=> exportCSV(filteredSales(isThisMonth), 'sale-report-month.csv');
+    const pdfDay = document.getElementById('pdf-day');
+    if(pdfDay) pdfDay.onclick = ()=> exportPDF(filteredSales(isToday), 'Sales Report - Today', 'sale-report-today.pdf');
+    const pdfMonth = document.getElementById('pdf-month');
+    if(pdfMonth) pdfMonth.onclick = ()=> exportPDF(filteredSales(isThisMonth), 'Sales Report - This Month', 'sale-report-month.pdf');
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
